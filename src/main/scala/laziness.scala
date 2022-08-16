@@ -27,9 +27,9 @@ enum LazyList[+A]:
     * f may choose to not look at the accumulation by not evaluating the second parameter
     * but this will blow the stack because of recursion
     */
-  def foldRight[B](acc: => B)(f: (A, => B) => B): B = this match
-    case Cons(h, t) => f(h(), t().foldRight(acc)(f))
-    case Empty      => acc
+  def foldRight[B](z: => B)(f: (A, => B) => B): B = this match
+    case Cons(h, t) => f(h(), t().foldRight(z)(f))
+    case Empty      => z
 
   def exists(p: A => Boolean): Boolean =
     foldRight(false)((a, b) => p(a) || b)
@@ -89,6 +89,31 @@ enum LazyList[+A]:
       case (_           , Cons(h2, t2)) => Some((None      , Some(h2())) -> (empty, t2() ))
       case _                            => None
     }
+
+  // Exercise 5.14
+  def startsWith[A](prefix: LazyList[A]): Boolean =
+    zipAll(prefix).takeWhile(_._2.isDefined).forAll { case (a1, a2) => a1 == a2}
+
+  // Exercise 5.15
+  def tails: LazyList[LazyList[A]] =
+    unfold(this){ s =>
+      s match
+        case Cons(_, t) => Some(s -> t())
+        case Empty      => None
+    }.append(empty)
+
+  def hasSubsequence[A](l: LazyList[A]): Boolean =
+    tails.exists(_.startsWith(l))
+
+  // Exercise 5.16
+  def scanRight[B](init: B)(f: (A, => B) => B): LazyList[B] = {
+
+    foldRight(init -> LazyList(init)) { (a, b0) => 
+      lazy val b1 = b0
+      val z2 = f(a, b1(0))
+      z2 -> cons(z2, b1(1))
+    }(1)
+  }
     
 
 object LazyList:
