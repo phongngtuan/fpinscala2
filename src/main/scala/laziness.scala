@@ -57,6 +57,38 @@ enum LazyList[+A]:
 
   def find(p: A => Boolean): Option[A] =
     filter(p).headOption
+
+  // Exercise 5.13
+  def mapViaUnfold[B](f: A => B): LazyList[B] =
+    unfold(this) {
+      case Cons(h, t) => Some(f(h()) -> t())
+      case Empty      => None
+    }
+
+  def takeViaUnfold(n: Int): LazyList[A] =
+    unfold((this, n)) { case (list, n) => list match
+      case Cons(h, t) if n > 0 => Some(h() -> (t(), n-1))
+      case _                   => None
+    }
+  def takeWhileViaUnfold(p: A => Boolean): LazyList[A] =
+    unfold(this) {
+      case Cons(h, t) if p(h()) => Some(h() -> t())
+      case _                    => None
+    }
+
+  def zipWith[B,C](that: LazyList[B])(f: (A,B) => C): LazyList[C] =
+    unfold((this, that)) {
+      case (Cons(h1, t1), Cons(h2, t2)) => Some(f(h1(), h2()) -> (t1(), t2()))
+      case                            _ => None
+    }
+
+  def zipAll[B](that: LazyList[B]): LazyList[(Option[A], Option[B])] =
+    unfold((this, that)) {
+      case (Cons(h1, t1), Cons(h2, t2)) => Some((Some(h1()), Some(h2())) -> (t1() , t2() ))
+      case (Cons(h1, t1), _           ) => Some((Some(h1()), None      ) -> (t1() , empty))
+      case (_           , Cons(h2, t2)) => Some((None      , Some(h2())) -> (empty, t2() ))
+      case _                            => None
+    }
     
 
 object LazyList:
@@ -98,3 +130,4 @@ object LazyList:
   def continuallyViaUnfold[A](a: A): LazyList[A] = unfold(a)(a => Some(a -> a))
 
   def onesViaUnfold: LazyList[Int] = unfold(())(_ => Some(1, ()))
+
